@@ -284,7 +284,7 @@ fn decrypt_block_AES128(aes128: &AES128, bytes: &[u8;16]) -> [u8;16] {
     return result;
 }
 
-pub fn run() {
+pub fn run_test() {
     println!("Testing simple encryption");
     let aes: AES128 = AES128::new_from_str("YellowSubmarine!");
     let result = (aes.encrypt)(&aes, &[65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65]);
