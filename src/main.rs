@@ -2,12 +2,9 @@ mod aes;
 extern crate rand;
 extern crate clap;
 
-use std::fs::File;
-use std::fs::read;
-use std::io::stdin;
-use std::io::prelude::*;
-use clap::{Arg, App};
-use clap::AppSettings;
+use std::fs::{File,read};
+use std::io::{stdin,prelude::*};
+use clap::{Arg, App,AppSettings};
 use rand::Rng;
 extern crate hex;
 
@@ -56,7 +53,6 @@ fn get_key_bytes(key_string: &str, key_file: &str, generate_key: bool) -> [u8;16
     } else {
         panic!("No key provided");
     }
-
 
     return key_bytes;
 }
@@ -138,7 +134,7 @@ fn main() {
     let input_string = matches.value_of("input").unwrap_or("");
     let in_file_name = matches.value_of("file").unwrap_or("");
     let out_file_name = matches.value_of("output").unwrap_or("");
-    let use_padding = matches.occurrences_of("padding");
+    let use_padding = matches.occurrences_of("padding") > 0;
     let decrypt = matches.occurrences_of("decrypt") > 0;
     let raw = matches.occurrences_of("raw") > 0;
 
@@ -147,7 +143,6 @@ fn main() {
 
     //Get input bytes
     let mut input_bytes:Vec<u8>;
-
 
     if input_string != "" {
         input_bytes = hex::decode(input_string).expect("Decoding input failed");
@@ -171,7 +166,17 @@ fn main() {
             input_bytes = string.as_bytes().to_vec();
         }
     }
-    //Pad if the flag is set 
+    //Pad if the flag is set, PKCS#7 padding for 16 byte blocks
+    if use_padding == true && decrypt == false {
+        let pad_byte : u8 = (16 - input_bytes.len() % 16) as u8;
+        println!("{:?}", pad_byte);
+        for i in 0..pad_byte {
+            input_bytes.push(pad_byte);
+        }
+    }
 
-    //Check length of input
+    println!("{:?}", input_bytes);
+
+    //Assert length of input % 16 == 0
+    assert!(input_bytes.len() % 16 == 0);
 }
