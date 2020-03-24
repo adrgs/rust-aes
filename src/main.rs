@@ -137,6 +137,7 @@ fn main() {
     let use_padding = matches.occurrences_of("padding") > 0;
     let decrypt = matches.occurrences_of("decrypt") > 0;
     let raw = matches.occurrences_of("raw") > 0;
+    let encrypt = !decrypt;
 
     //Get key
     let key_bytes = get_key_bytes(key_string, key_file, generate);
@@ -175,8 +176,26 @@ fn main() {
         }
     }
 
-    println!("{:?}", input_bytes);
-
     //Assert length of input % 16 == 0
     assert!(input_bytes.len() % 16 == 0);
+
+    //
+    let mut output_bytes:Vec<u8>;
+
+    //Instantiate the AES algorithm
+    let aes: aes::AES128 = aes::AES128::new(&key_bytes);
+
+    //Encrypt/Decrypt the input
+    if encrypt == true {
+        output_bytes = (aes.encrypt)(&aes, &input_bytes);
+        println!("{:?}", input_bytes);
+        println!("{:?}", output_bytes);
+    } else { //Decrypt
+
+    }
+
+    //Save the output to file/stdout;
+
+
+    //Done!
 }

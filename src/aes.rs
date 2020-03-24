@@ -38,8 +38,8 @@ static RC: [u8;11] = [0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B
 
 pub struct AES128 {
     expanded_key: [[u8;4];44],
-    encrypt: fn(&AES128, &[u8]) -> Vec<u8>,
-    decrypt: fn(&AES128, &[u8]) -> Vec<u8>,
+    pub encrypt: fn(&AES128, &[u8]) -> Vec<u8>,
+    pub decrypt: fn(&AES128, &[u8]) -> Vec<u8>,
     encrypt_block: fn(&AES128, &[u8;16]) -> [u8;16],
     decrypt_block: fn(&AES128, &[u8;16]) -> [u8;16],
 }
