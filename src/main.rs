@@ -76,7 +76,7 @@ fn write_output_file(output_bytes: &[u8], file_name: &str) -> std::io::Result<()
 fn main() {
     let matches = App::new("rust-aes")
         .setting(AppSettings::ArgRequiredElseHelp)
-        .version("0.1.1")
+        .version("0.1.2")
         .author("adrgs github.com/adrgs/rust-aes")
         .about("A pure Rust implementation of AES 128")
         .arg(Arg::with_name("file")
@@ -183,8 +183,9 @@ fn main() {
         }
     }
 
-    //Assert length of input % 16 == 0
+    //Assert length of input % 16 == 0 and length > 0
     assert!(input_bytes.len() % 16 == 0);
+    assert!(input_bytes.len() > 0);
 
     //
     let mut output_bytes:Vec<u8>;
@@ -197,13 +198,36 @@ fn main() {
         output_bytes = (aes.encrypt)(&aes, &input_bytes);
     } else { 
         //Decrypt
-        panic!("TODO: implement decryption");
+        output_bytes = (aes.decrypt)(&aes, &input_bytes);
 
         //
         if use_padding == true {
-            panic!("TODO: implement unpadding");
+            let last_byte = output_bytes[output_bytes.len()-1];
+            let mut good = true;
+
+            if (last_byte as usize) > output_bytes.len() {
+                good = false;
+            } else {
+                if last_byte > 16 || last_byte == 0 {
+                    good = false;
+                }
+                else {
+                    for i in 0..last_byte {
+                        if output_bytes[output_bytes.len()-1-(i as usize)] != last_byte {
+                            good = false;
+                            break;
+                        }
+                    }
+                    for i in 0..last_byte {
+                        output_bytes.pop();
+                    }
+                }
+            }
+
             // If we can't unpad, just send a warning
-            eprintln!("Warning! The data could not be unpadded");
+            if good == false  {
+                eprintln!("Warning! The data could not be unpadded");
+            }
         }
     }
 
