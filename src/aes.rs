@@ -167,10 +167,16 @@ fn sub_bytes(state:&mut [[u8;4];4]) {
     }
 }
 
+fn inv_sub_bytes(state:&mut [[u8;4];4]) {
+    for i in 0..4 {
+        for j in 0..4 {
+            state[i][j] = substitute(state[i][j], false);
+        }
+    }
+}
+
 fn shift_rows(state:&mut [[u8;4];4]) {
-    //println!("\n\n\n");
     for i in 1..4 {
-        //println!("{:?}\n", state[i]);
         let mut tmp = vec![0u8;i];
         for j in 0..i {
             tmp[j] = state[i][j];
@@ -181,7 +187,21 @@ fn shift_rows(state:&mut [[u8;4];4]) {
         for j in 0..i {
             state[i][3-j] = tmp[i-j-1];
         }
-        //println!("{:?}\n\n", state[i]);
+    }
+}
+
+fn inv_shift_rows(state:&mut [[u8;4];4]) {
+    for i in (1..4).rev() {
+        let mut tmp = vec![0u8;i];
+        for j in 0..i {
+            tmp[j] = state[4-i][j];
+        }
+        for j in 0..4-i {
+            state[4-i][j] = state[4-i][j+i];
+        }
+        for j in 0..i {
+            state[4-i][3-j] = tmp[i-j-1];
+        }
     }
 }
 
@@ -217,6 +237,21 @@ fn mix_columns(state: &mut [[u8;4];4]) {
         state[2][i] = galois_multiplication(temp[2], 2) ^ galois_multiplication(temp[1], 1) ^ galois_multiplication(temp[0], 1) ^ galois_multiplication(temp[3], 3);
         state[3][i] = galois_multiplication(temp[3], 2) ^ galois_multiplication(temp[2], 1) ^ galois_multiplication(temp[1], 1) ^ galois_multiplication(temp[0], 3);
 
+    }
+}
+
+fn inv_mix_columns(state: &mut [[u8;4];4]) {
+    for i in 0..4 {
+
+        let mut temp = [0u8;4];
+        for j in 0..4 {
+            temp[j] = state[j][i];
+        }
+
+        state[0][i] = galois_multiplication(temp[0], 14) ^ galois_multiplication(temp[3], 9) ^ galois_multiplication(temp[2], 13) ^ galois_multiplication(temp[1], 11);
+        state[1][i] = galois_multiplication(temp[1], 14) ^ galois_multiplication(temp[0], 9) ^ galois_multiplication(temp[3], 13) ^ galois_multiplication(temp[2], 11);
+        state[2][i] = galois_multiplication(temp[2], 14) ^ galois_multiplication(temp[1], 9) ^ galois_multiplication(temp[0], 13) ^ galois_multiplication(temp[3], 11);
+        state[3][i] = galois_multiplication(temp[3], 14) ^ galois_multiplication(temp[2], 9) ^ galois_multiplication(temp[1], 13) ^ galois_multiplication(temp[0], 11);
     }
 }
 
@@ -275,11 +310,49 @@ fn decrypt_AES128(aes128: &AES128, bytes: &[u8]) -> Vec<u8> {
     if bytes.len()%16!=0 {
         panic!("Input is not multiple of 16 bytes!");
     }
-    return vec![1];
+
+    let mut result = vec![0u8; bytes.len()];
+
+    for i in 0..bytes.len()/16 {
+        let mut block = [0u8;16];
+        for j in 0..16 {
+            block[j] = bytes[i*16 + j];
+        }
+        block = decrypt_block_AES128(aes128, &block);
+        for j in 0..16 {
+            result[i*16 + j] = block[j];
+        }
+    }
+
+    return result;
 }
 
 fn decrypt_block_AES128(aes128: &AES128, bytes: &[u8;16]) -> [u8;16] {
     let mut result = [0u8;16];
+
+    let mut state = [[0u8;4];4];
+    for i in 0..16 {
+        state[i%4][i/4] = bytes[i];
+    }
+
+    add_round_key(&mut state, &clone_into_array(&aes128.expanded_key[40..44]));
+    inv_shift_rows(&mut state);
+    inv_sub_bytes(&mut state);
+
+    for i in (1..10).rev() {
+        add_round_key(&mut state, &clone_into_array(&aes128.expanded_key[i*4..(i+1)*4]));
+        inv_mix_columns(&mut state);
+        inv_shift_rows(&mut state);
+        inv_sub_bytes(&mut state);
+    }
+
+    add_round_key(&mut state, &clone_into_array(&aes128.expanded_key[0..4]));
+
+    for i in 0..4 {
+        for j in 0..4 {
+            result[4*j+i] = state[i][j]
+        }
+    }
 
     return result;
 }
@@ -287,7 +360,14 @@ fn decrypt_block_AES128(aes128: &AES128, bytes: &[u8;16]) -> [u8;16] {
 pub fn run_test() {
     println!("Testing simple encryption");
     let aes: AES128 = AES128::new_from_str("YellowSubmarine!");
-    let result = (aes.encrypt)(&aes, &[65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65]);
-    assert!(result == [28, 203, 121, 8, 47, 187, 48, 216, 108, 79, 120, 29, 203, 136, 214, 44]);
+
+    let mut basic_input = [65u8;16];
+    let encryption_result = (aes.encrypt)(&aes, &basic_input);
+    assert!(encryption_result == [28, 203, 121, 8, 47, 187, 48, 216, 108, 79, 120, 29, 203, 136, 214, 44]);
     println!("Testing simple encryption - Test OK");
+
+    println!("Testing simple decryption");
+    let decryption_result = (aes.decrypt)(&aes, &encryption_result);
+    assert!(decryption_result == basic_input);
+    println!("Testing simple decryption - Test OK");
 }
