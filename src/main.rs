@@ -3,7 +3,7 @@ extern crate rand;
 extern crate clap;
 
 use std::fs::{File,read};
-use std::io::{stdin,prelude::*};
+use std::io::{stdin,stdout,prelude::*};
 use clap::{Arg, App,AppSettings};
 use rand::Rng;
 extern crate hex;
@@ -65,6 +65,14 @@ fn write_generated_key(key_bytes: &[u8;16]) -> std::io::Result<()> {
     Ok(())
 }
 
+fn write_output_file(output_bytes: &[u8], file_name: &str) -> std::io::Result<()> {
+    let mut f = File::create(file_name)?;
+    f.write_all(output_bytes)?;
+
+    f.sync_all()?;
+    Ok(())
+}
+
 fn main() {
     let matches = App::new("rust-aes")
         .setting(AppSettings::ArgRequiredElseHelp)
@@ -98,7 +106,7 @@ fn main() {
         .arg(Arg::with_name("raw")
             .short("r")
             .long("raw")
-            .help("Read raw bytes from stdin (default is hex)"))
+            .help("Read raw bytes from stdin and write raw byte to stdout (default is hex)"))
         .arg(Arg::with_name("keyfile")
             .long("kf")
             .takes_value(true)
@@ -170,7 +178,6 @@ fn main() {
     //Pad if the flag is set, PKCS#7 padding for 16 byte blocks
     if use_padding == true && decrypt == false {
         let pad_byte : u8 = (16 - input_bytes.len() % 16) as u8;
-        println!("{:?}", pad_byte);
         for i in 0..pad_byte {
             input_bytes.push(pad_byte);
         }
@@ -188,14 +195,28 @@ fn main() {
     //Encrypt/Decrypt the input
     if encrypt == true {
         output_bytes = (aes.encrypt)(&aes, &input_bytes);
-        println!("{:?}", input_bytes);
-        println!("{:?}", output_bytes);
-    } else { //Decrypt
+    } else { 
+        //Decrypt
+        panic!("TODO: implement decryption");
 
+        //
+        if use_padding == true {
+            panic!("TODO: implement unpadding");
+            // If we can't unpad, just send a warning
+            eprintln!("Warning! The data could not be unpadded");
+        }
     }
 
     //Save the output to file/stdout;
-
+    if out_file_name != "" {
+        write_output_file(&output_bytes, out_file_name);
+    } else {
+        if raw == true {
+            stdout().write_all(&output_bytes);
+        } else {
+            println!("{}", hex::encode(output_bytes));
+        }
+    }
 
     //Done!
 }
