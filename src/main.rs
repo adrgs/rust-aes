@@ -102,7 +102,7 @@ fn main() {
         .arg(Arg::with_name("raw")
             .short("r")
             .long("raw")
-            .help("Read raw bytes from stdin"))
+            .help("Read raw bytes from stdin (default is hex)"))
         .arg(Arg::with_name("keyfile")
             .long("kf")
             .takes_value(true)
@@ -125,8 +125,8 @@ fn main() {
             .help("Test the encryption/decryption algorithm")).get_matches();
 
     //Get test flag
-    let test = matches.occurrences_of("test");
-    if test > 0 {
+    let test = matches.occurrences_of("test") > 0;
+    if test == true {
         aes::run_test();
         std::process::exit(0);
     }
@@ -135,6 +135,7 @@ fn main() {
     let key_string = matches.value_of("key").unwrap_or("");
     let key_file = matches.value_of("keyfile").unwrap_or("");
     let generate = matches.occurrences_of("generate") > 0;
+    let input_string = matches.value_of("input").unwrap_or("");
     let in_file_name = matches.value_of("file").unwrap_or("");
     let out_file_name = matches.value_of("output").unwrap_or("");
     let use_padding = matches.occurrences_of("padding");
@@ -146,7 +147,12 @@ fn main() {
 
     //Get input bytes
     let mut input_bytes:Vec<u8>;
-    if in_file_name != "" {
+
+
+    if input_string != "" {
+        input_bytes = hex::decode(input_string).expect("Decoding input failed");
+    }
+    else if in_file_name != "" {
         input_bytes = read(in_file_name).expect("Failed to read");
     } else {
         let mut reader = stdin();
@@ -164,5 +170,8 @@ fn main() {
         else {
             input_bytes = string.as_bytes().to_vec();
         }
-    }   
+    }
+    //Pad if the flag is set 
+
+    //Check length of input
 }
