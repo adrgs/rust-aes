@@ -1,7 +1,7 @@
 # rust-aes
 
 ```
-rust-aes 0.1.1
+rust-aes 0.1.2
 adrgs github.com/adrgs/rust-aes
 A pure Rust implementation of AES 128
 
