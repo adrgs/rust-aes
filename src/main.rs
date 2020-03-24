@@ -76,7 +76,7 @@ fn write_output_file(output_bytes: &[u8], file_name: &str) -> std::io::Result<()
 fn main() {
     let matches = App::new("rust-aes")
         .setting(AppSettings::ArgRequiredElseHelp)
-        .version("0.1.0")
+        .version("0.1.1")
         .author("adrgs github.com/adrgs/rust-aes")
         .about("A pure Rust implementation of AES 128")
         .arg(Arg::with_name("file")
